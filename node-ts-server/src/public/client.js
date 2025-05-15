@@ -48,8 +48,9 @@ class ChatClient {
                 try {
                     const data = JSON.parse(event.data);
                     switch (data.type) {
-                        case 'chat':
-                            this.showMessage(data.text, 'chat');
+                        case 'message': // Changed from 'chat' to 'message' to match server
+                            const messageText = `${data.sender}: ${data.text}`;
+                            this.showMessage(messageText, 'chat');
                             break;
                         case 'system':
                         case 'status':
@@ -58,6 +59,8 @@ class ChatClient {
                         case 'error':
                             this.showError(data.message);
                             break;
+                        default:
+                            console.log('Unknown message type:', data);
                     }
                 } catch (error) {
                     console.error('Error processing message:', error);
@@ -123,12 +126,13 @@ class ChatClient {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}-message`;
         messageDiv.textContent = message;
-        
+
         if (isOwn) {
+            messageDiv.classList.add('own-message');
             messageDiv.style.marginLeft = 'auto';
             messageDiv.style.backgroundColor = '#e3f2fd';
         }
-        
+
         this.messagesContainer.appendChild(messageDiv);
         this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
     }

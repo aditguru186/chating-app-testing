@@ -54,6 +54,7 @@ wss.on('connection', (ws: any) => {
     ws.on('message', (data: WebSocket.Data) => {
         try {
             const message = JSON.parse(data.toString());
+            console.log('Received message:', message);
             if (message.text && message.text.length > MESSAGE_LENGTH_LIMIT) {
                 const currentCount = errorCounts.get(ws) || 0;
                 errorCounts.set(ws, currentCount + 1);
@@ -77,12 +78,14 @@ wss.on('connection', (ws: any) => {
                 return;
             }
 
-            broadcast({
+            const broadcastMessage:ChatMessage = {
                 type: 'message',
                 text: message.text,
                 sender: ws._socket.remoteAddress,
                 status_code: 200
-            }, ws);
+            };
+            console.log('Broadcasting to clients:', Array.from(clients).length); // Add logging
+            broadcast(broadcastMessage, ws);
         }
         catch (error) {
             ws.send(JSON.stringify({

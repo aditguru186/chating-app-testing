@@ -127,3 +127,14 @@ button:disabled {
     text-align: center;
     min-height: 20px;
 }
+
+.system-message {
+    background-color: #fff3cd;
+    color: #856404;
+    font-style: italic;
+}
+
+.own-message {
+    background-color: #e3f2fd !important;
+    margin-left: auto;
+}
