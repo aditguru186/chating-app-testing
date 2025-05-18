@@ -5,7 +5,7 @@ import { ExtendedWebSocket, ChatMessage } from './types';
 
 export const app = express();
 const server = app.listen(3001, () => {
-    console.log('Chatting Server running on port 3001');
+    // console.log('Chatting Server running on port 3001');
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -18,7 +18,7 @@ const ERROR_THRESHOLD = 5;
 const errorCounts: Map<ExtendedWebSocket, number> = new Map();
 
 function broadcast(message: ChatMessage, sender: ExtendedWebSocket): void {
-    console.log('Clients:', clients);
+    // console.log('Clients:', clients);
     clients.forEach(client => {
         if (client !== sender && client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify(message));
@@ -37,7 +37,7 @@ function sendConnectionStatus(client: ExtendedWebSocket): void {
 }
 
 wss.on('connection', (ws: any) => {
-    console.log('New Client Connected');
+    // console.log('New Client Connected');
     clients.add(ws);
     errorCounts.set(ws, 0);
 
@@ -54,7 +54,7 @@ wss.on('connection', (ws: any) => {
     ws.on('message', (data: WebSocket.Data) => {
         try {
             const message = JSON.parse(data.toString());
-            console.log('Received message:', message);
+            // console.log('Received message:', message);
             if (message.text && message.text.length > MESSAGE_LENGTH_LIMIT) {
                 const currentCount = errorCounts.get(ws) || 0;
                 errorCounts.set(ws, currentCount + 1);
@@ -84,7 +84,7 @@ wss.on('connection', (ws: any) => {
                 sender: ws._socket.remoteAddress,
                 status_code: 200
             };
-            console.log('Broadcasting to clients:', Array.from(clients).length); // Add logging
+            // console.log('Broadcasting to clients:', Array.from(clients).length); // Add logging
             broadcast(broadcastMessage, ws);
         }
         catch (error) {
@@ -97,7 +97,7 @@ wss.on('connection', (ws: any) => {
     });
 
     ws.on('close', () => {
-        console.log('Client Disconnected');
+        // console.log('Client Disconnected');
         clients.delete(ws);
         clearInterval(statusInterval);
         errorCounts.delete(ws);

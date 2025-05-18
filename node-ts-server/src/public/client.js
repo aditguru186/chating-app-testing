@@ -23,6 +23,12 @@ class ChatClient {
         this.messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.sendMessage();
         });
+
+        //reconnection 
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 5;
+        this.reconnectDelay = 2000; // Start with 2 seconds
+        this.reconnectTimeout = null;
     }
 
     connect() {
@@ -37,6 +43,11 @@ class ChatClient {
             this.ws.onclose = () => {
                 this.updateConnectionStatus(false);
                 this.showMessage('Disconnected from server', 'system');
+
+                // Only attempt to reconnect if it wasn't a manual disconnection
+                if (!event.wasClean) {
+                    this.tryReconnect();
+                }
             };
 
             this.ws.onerror = (error) => {
@@ -60,7 +71,7 @@ class ChatClient {
                             this.showError(data.message);
                             break;
                         default:
-                            console.log('Unknown message type:', data);
+                            // console.log('Unknown message type:', data);
                     }
                 } catch (error) {
                     console.error('Error processing message:', error);
@@ -72,8 +83,29 @@ class ChatClient {
             console.error('Connection error:', error);
         }
     }
+    tryReconnect(){
+        if(this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
+        if(this.reconnectAttempts < this.maxReconnectAttempts){
+            this.reconnectAttempts++;
+            const delay = this.reconnectDelay * Math.pow(1.2, this.reconnectAttempts);
+            this.showMessage('Connection lost. Attempting to reconnect', 'system');
+            this.reconnectTimeout = setTimeout(()=>{
+                this.showMessage('Reconnecting...', 'system');
+                this.connect();
+            },delay);
+        }
+        else{
+            this.showError('Max reconnect attempts reached. Please try connecting manually', 'system');
+            this.reconnectAttempts = 0;
+        }
+    }
 
     disconnect() {
+        console.log("Disconnecting from Client : ", JSON.stringify(this.ws));
+        if(this.reconnectTimeout){
+            clearTimeout(this.reconnectTimeout);
+            this.reconnectTimeout = null;
+        }
         if (this.ws) {
             this.ws.close();
         }
@@ -114,6 +146,7 @@ class ChatClient {
 
         try {
             this.ws.send(JSON.stringify({ text: message }));
+            console.log(JSON.stringify({ text: message }));
             this.messageInput.value = '';
             this.showMessage(message, 'chat', true);
         } catch (error) {
