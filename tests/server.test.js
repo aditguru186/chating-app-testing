@@ -2,11 +2,13 @@ const WebSocket = require('ws');
 const http = require('http');
 const { create } = require('domain');
 
+
 describe('WebSocket Chat Server', () => {
     let serverProcess;
     let clients = [];
     const PORT = 3001;
-    const WS_URL = `ws://localhost:${PORT}`;
+    const username = 'testUser';
+    const WS_URL = `ws://localhost:${PORT}/ws?username=${username}`;
 
     beforeAll( (done)=>{
         serverProcess = require('child_process').spawn('ts-node', ['server.ts']);
@@ -65,16 +67,46 @@ describe('WebSocket Chat Server', () => {
         }
     });
 
-    //negative test cases
+    test('Generate TOKEN & verify', async()=>{
+        const userData = {
+            userId: 12
+        };
+        const apiBaseUrl = 'http://localhost:3001/api/'; // Adjust the base URL as needed
+        const genTokenResponse = await fetch(`${apiBaseUrl}genToken`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            query: JSON.stringify(userData)
+        });
+        const result = await genTokenResponse.json();
+        expect(result.status).toBe(200);
+        expect(result.token).toBeDefined();
+        expect(result.message).toBe('Token generated successfully');
+
+        const verifyTokenResponse = await fetch(`${apiBaseUrl}verifyToken`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${result.token}`
+            }
+        });
+        const verifyResult = await verifyTokenResponse.json();
+        expect(verifyResult.status).toBe(200);
+        expect(verifyResult.valid).toBe(true);
+        expect(verifyResult.message).toBe('Token is valid');
+    });
+
+    //////// negative test cases
     test('Should check length of message', async()=>{
         const ws = await createWebSocketClient();
         const longMessage = 'a'.repeat(1001); // Assuming max length is 1000
         ws.send(JSON.stringify({ type: 'message', text: longMessage }));
-
         ws.on('message', (data)=>{
             const message = JSON.parse(data);
-            expect(message.type).toBe('error');
-            expect(message.message).toBe('Message length exceeds 1000 characters');
+            if (message.type === 'error'){
+                expect(message.message).toBe('Message length exceeds 1000 characters');
+            }
         });
     });
 

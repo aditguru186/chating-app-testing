@@ -1,10 +1,18 @@
-# chating-app-testing
-Sasken test chatting app and testing.
+This is a basic chat app, where using websocket, we connect from client to server and chat across. 
 
-############----------- To Run App ------------##############
-navigate to node-ts-server, 
-> npm run dev/ npm start. 
-to start the test 
-> npm run test
+Setup : 
+npm install 
+
+Start the app : 
+npm start
+
+Run Tests : 
+npm run test
 
 
+How to use on client side: 
+1. Enter username
+2. Click Generate Token Button 
+3. Connect
+4. Text with the server.
+5. Disconnect(Optional)

@@ -12,23 +12,29 @@
             <span id="status-indicator" class="disconnected"></span>
             <span id="status-text">Disconnected</span>
         </div>
+
+        <div class="user-info">
+            <label for="username">Username:</label>
+            <input type="text" id="username" placeholder="Enter your username">
+        </div>
         
         <div class="chat-container">
             <div id="messages" class="messages"></div>
             
             <div class="input-container">
-                <input type="text" id="message-input" placeholder="Type your message..." maxlength="1000">
+                <input type="text" id="message-input" placeholder="Type your message..." >
                 <button id="send-button">Send</button>
             </div>
         </div>
 
         <div class="controls">
+            <button id="token-button">Generate Token(Click here to begin)</button>
             <button id="connect-button">Connect</button>
             <button id="disconnect-button" disabled>Disconnect</button>
         </div>
 
         <div id="error-container" class="error-container"></div>
     </div>
-    <script src="client.js"></script>
+    <script type="module" src="client.js"></script>
 </body>
 </html>

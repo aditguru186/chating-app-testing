@@ -6,7 +6,7 @@
 
 body {
     font-family: Arial, sans-serif;
-    background-color: #f0f2f5;
+    background-color: #011a40;
     height: 100vh;
     display: flex;
     justify-content: center;
@@ -15,8 +15,9 @@ body {
 
 .container {
     width: 90%;
+    color:#e3f2fd;
     max-width: 800px;
-    background-color: white;
+    background-color: rgb(27, 36, 73);
     border-radius: 10px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     padding: 20px;
@@ -44,7 +45,7 @@ body {
 }
 
 .chat-container {
-    border: 1px solid #ddd;
+    border: 1px solid #007cad;
     border-radius: 5px;
     margin-bottom: 20px;
 }
@@ -77,7 +78,7 @@ body {
 }
 
 .chat-message {
-    background-color: #e8f5e9;
+    background-color: #003c5a;
     color: #2e7d32;
 }
 
@@ -86,6 +87,14 @@ body {
     gap: 10px;
     padding: 10px;
     border-top: 1px solid #ddd;
+    background-color: #003c5a;
+    color: #ddd;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 input[type="text"] {

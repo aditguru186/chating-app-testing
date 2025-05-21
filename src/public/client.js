@@ -5,6 +5,8 @@ class ChatClient {
         this.errorCount = 0;
         this.MAX_MESSAGE_LENGTH = 1000;
         this.ERROR_THRESHOLD = 5;
+        this.apiBaseUrl = 'http://localhost:3001/api/';
+        this.token = localStorage.getItem('chatToken') || null;
 
         // DOM Elements
         this.messageInput = document.getElementById('message-input');
@@ -15,6 +17,8 @@ class ChatClient {
         this.statusIndicator = document.getElementById('status-indicator');
         this.statusText = document.getElementById('status-text');
         this.errorContainer = document.getElementById('error-container');
+        this.genTokenBtn = document.getElementById('token-button');
+        this.userName = document.getElementById('username');
 
         // Event Listeners
         this.connectButton.addEventListener('click', () => this.connect());
@@ -23,12 +27,98 @@ class ChatClient {
         this.messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.sendMessage();
         });
+        this.genTokenBtn.addEventListener('click', async () => this.genTokenAndSave())
+
+        //reconnection 
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 5;
+        this.reconnectDelay = 2000; // ms
+        this.reconnectTimeout = null;
     }
 
-    connect() {
+    getAuthHeaders() {
+        return {
+            headers: {
+                'Authorization': `Bearer ${this.token}`,
+                'Content-Type': 'application/json'
+            }
+        };
+    }
+    async genTokenAndSave() {
         try {
-            this.ws = new WebSocket('ws://localhost:3001');
-            
+            const data = {
+                // time: Date.now(),
+                userId: 12
+            };
+
+            const response = await fetch(`${this.apiBaseUrl}genToken`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                query: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.token) {
+                    this.token = result.token;
+                    localStorage.setItem('chatToken', this.token);
+                    this.showMessage('API connection successful', 'system');
+                    return true;
+                }
+            }
+            return false;
+        } catch (error) {
+            this.showError(`API connection failed: ${error.message}`);
+            console.error('API connection error:', error);
+            return false;
+        }
+    }
+    async verifyApiConnection() {
+        try{
+            const token = localStorage.getItem('chatToken');
+            if (!token) {
+                this.showError('No token found. Please generate a token first.');
+                return false;
+            }
+            const response = await fetch(`${this.apiBaseUrl}verifyToken`, {
+                method:'GET',
+                headers:{
+                    contentType: 'application/json',
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            if (response.ok) {
+                const result = await response.json();
+                if (result.valid) {
+                    this.showMessage('API connection successful', 'system');
+                    return true;
+                } else {
+                    this.showError('Invalid token. Please generate a new token.');
+                    return false;
+                }
+            } else {
+                this.showError('API connection failed. Please check your server.');
+                return false;
+            }
+        }
+        catch (error) {
+            this.showError(`API connection error: ${error.message}`);
+            console.error('API connection error:', error);
+            return false;
+        }
+    }
+    
+
+    async connect() {
+        try {
+            const isApiConnected = await this.verifyApiConnection();
+            if (!isApiConnected) {
+                this.showError('Cannot establish WebSocket connection without API connection');
+                return;
+            }
+            this.ws = new WebSocket('ws://localhost:3001/ws?username=' + this.userName.value || 'Guest');
             this.ws.onopen = () => {
                 this.updateConnectionStatus(true);
                 this.showMessage('Connected to server', 'system');
@@ -37,6 +127,11 @@ class ChatClient {
             this.ws.onclose = () => {
                 this.updateConnectionStatus(false);
                 this.showMessage('Disconnected from server', 'system');
+
+                // Only attempt to reconnect if it wasn't a manual disconnection
+                if (!event.wasClean) {
+                    this.tryReconnect();
+                }
             };
 
             this.ws.onerror = (error) => {
@@ -60,20 +155,42 @@ class ChatClient {
                             this.showError(data.message);
                             break;
                         default:
-                            console.log('Unknown message type:', data);
+                            // console.log('Unknown message type:', data);
                     }
                 } catch (error) {
                     console.error('Error processing message:', error);
                 }
             };
 
+
         } catch (error) {
             this.showError('Failed to connect to server');
             console.error('Connection error:', error);
         }
     }
+    tryReconnect(){
+        if(this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
+        if(this.reconnectAttempts < this.maxReconnectAttempts){
+            this.reconnectAttempts++;
+            const delay = this.reconnectDelay * Math.pow(1.2, this.reconnectAttempts);
+            this.showMessage('Connection lost. Attempting to reconnect', 'system');
+            this.reconnectTimeout = setTimeout(()=>{
+                this.showMessage('Reconnecting...', 'system');
+                this.connect();
+            },delay);
+        }
+        else{
+            this.showError('Max reconnect attempts reached. Please try connecting manually', 'system');
+            this.reconnectAttempts = 0;
+        }
+    }
 
     disconnect() {
+        console.log("Disconnecting from Client : ", JSON.stringify(this.ws));
+        if(this.reconnectTimeout){
+            clearTimeout(this.reconnectTimeout);
+            this.reconnectTimeout = null;
+        }
         if (this.ws) {
             this.ws.close();
         }
@@ -114,6 +231,7 @@ class ChatClient {
 
         try {
             this.ws.send(JSON.stringify({ text: message }));
+            console.log(JSON.stringify({ text: message }));
             this.messageInput.value = '';
             this.showMessage(message, 'chat', true);
         } catch (error) {
