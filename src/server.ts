@@ -3,6 +3,7 @@ import express from 'express';
 import path from 'path';
 import { ExtendedWebSocket, ChatMessage } from './types';
 import jwt from 'jsonwebtoken';
+import url from 'url';
 
 export const app = express();
 const JWT_SECRET_KEY = 'SaskenNoice123';
@@ -12,7 +13,20 @@ const server = app.listen(3001, () => {
 });
 
 function WebSocketConnection(){
-    const wss = new WebSocket.Server({ server });
+    const wss = new WebSocket.Server({ server,
+        verifyClient:(info, callback)=>{
+            const { query } = url.parse(info.req.url!, true);
+            const sender = query.username;
+
+            if(!sender) {
+                callback(false, 401, 'Unauthorized');
+                return;
+            }
+
+            (info.req as any).sender = sender;
+            callback(true);
+        }
+     });
 
     const clients: Set<ExtendedWebSocket> = new Set();
     const MESSAGE_LENGTH_LIMIT = 1000;
@@ -39,11 +53,15 @@ function WebSocketConnection(){
         }
     }
 
-    wss.on('connection', (ws: any) => {
+    wss.on('connection', (ws: any, req:any) => {
         // console.log('New Client Connected');
+
+        const sender = req.sender;
+        ws.sender = sender;
+        console.log('Sender:', sender);
         clients.add(ws);
         errorCounts.set(ws, 0);
-
+       
         ws.send(JSON.stringify({
             type: 'system',
             message: 'Welcome to the Chat!',
@@ -84,7 +102,7 @@ function WebSocketConnection(){
                 const broadcastMessage: ChatMessage = {
                     type: 'message',
                     text: message.text,
-                    sender: ws._socket.remoteAddress,
+                    sender: ws.sender,
                     status_code: 200
                 };
                 // console.log('Broadcasting to clients:', Array.from(clients).length); // Add logging

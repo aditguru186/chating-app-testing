@@ -91,6 +91,12 @@ body {
     color: #ddd;
 }
 
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 input[type="text"] {
     flex: 1;
     padding: 10px;

@@ -18,6 +18,7 @@ class ChatClient {
         this.statusText = document.getElementById('status-text');
         this.errorContainer = document.getElementById('error-container');
         this.genTokenBtn = document.getElementById('token-button');
+        this.userName = document.getElementById('username');
 
         // Event Listeners
         this.connectButton.addEventListener('click', () => this.connect());
@@ -117,7 +118,7 @@ class ChatClient {
                 this.showError('Cannot establish WebSocket connection without API connection');
                 return;
             }
-            this.ws = new WebSocket('ws://localhost:3001');
+            this.ws = new WebSocket('ws://localhost:3001/ws?username=' + this.userName.value || 'Guest');
             this.ws.onopen = () => {
                 this.updateConnectionStatus(true);
                 this.showMessage('Connected to server', 'system');
