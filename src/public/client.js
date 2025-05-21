@@ -5,6 +5,8 @@ class ChatClient {
         this.errorCount = 0;
         this.MAX_MESSAGE_LENGTH = 1000;
         this.ERROR_THRESHOLD = 5;
+        this.apiBaseUrl = 'http://localhost:3001/api/';
+        this.token = localStorage.getItem('chatToken') || null;
 
         // DOM Elements
         this.messageInput = document.getElementById('message-input');
@@ -15,6 +17,7 @@ class ChatClient {
         this.statusIndicator = document.getElementById('status-indicator');
         this.statusText = document.getElementById('status-text');
         this.errorContainer = document.getElementById('error-container');
+        this.genTokenBtn = document.getElementById('token-button');
 
         // Event Listeners
         this.connectButton.addEventListener('click', () => this.connect());
@@ -23,18 +26,98 @@ class ChatClient {
         this.messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.sendMessage();
         });
+        this.genTokenBtn.addEventListener('click', async () => this.genTokenAndSave())
 
         //reconnection 
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
-        this.reconnectDelay = 2000; // Start with 2 seconds
+        this.reconnectDelay = 2000; // ms
         this.reconnectTimeout = null;
     }
 
-    connect() {
+    getAuthHeaders() {
+        return {
+            headers: {
+                'Authorization': `Bearer ${this.token}`,
+                'Content-Type': 'application/json'
+            }
+        };
+    }
+    async genTokenAndSave() {
         try {
+            const data = {
+                // time: Date.now(),
+                userId: 12
+            };
+
+            const response = await fetch(`${this.apiBaseUrl}genToken`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                query: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.token) {
+                    this.token = result.token;
+                    localStorage.setItem('chatToken', this.token);
+                    this.showMessage('API connection successful', 'system');
+                    return true;
+                }
+            }
+            return false;
+        } catch (error) {
+            this.showError(`API connection failed: ${error.message}`);
+            console.error('API connection error:', error);
+            return false;
+        }
+    }
+    async verifyApiConnection() {
+        try{
+            const token = localStorage.getItem('chatToken');
+            if (!token) {
+                this.showError('No token found. Please generate a token first.');
+                return false;
+            }
+            const response = await fetch(`${this.apiBaseUrl}verifyToken`, {
+                method:'GET',
+                headers:{
+                    contentType: 'application/json',
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            if (response.ok) {
+                const result = await response.json();
+                if (result.valid) {
+                    this.showMessage('API connection successful', 'system');
+                    return true;
+                } else {
+                    this.showError('Invalid token. Please generate a new token.');
+                    return false;
+                }
+            } else {
+                this.showError('API connection failed. Please check your server.');
+                return false;
+            }
+        }
+        catch (error) {
+            this.showError(`API connection error: ${error.message}`);
+            console.error('API connection error:', error);
+            return false;
+        }
+    }
+    
+
+    async connect() {
+        try {
+            const isApiConnected = await this.verifyApiConnection();
+            if (!isApiConnected) {
+                this.showError('Cannot establish WebSocket connection without API connection');
+                return;
+            }
             this.ws = new WebSocket('ws://localhost:3001');
-            
             this.ws.onopen = () => {
                 this.updateConnectionStatus(true);
                 this.showMessage('Connected to server', 'system');
@@ -77,6 +160,7 @@ class ChatClient {
                     console.error('Error processing message:', error);
                 }
             };
+
 
         } catch (error) {
             this.showError('Failed to connect to server');
