@@ -7,7 +7,8 @@ describe('WebSocket Chat Server', () => {
     let serverProcess;
     let clients = [];
     const PORT = 3001;
-    const WS_URL = `ws://localhost:${PORT}`;
+    const username = 'testUser';
+    const WS_URL = `ws://localhost:${PORT}/ws?username=${username}`;
 
     beforeAll( (done)=>{
         serverProcess = require('child_process').spawn('ts-node', ['server.ts']);
